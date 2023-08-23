@@ -32,20 +32,7 @@ User: {input}
 AI:`
 
 const openai = new OpenAIApi(configuration)
-
-
 const pinecone = new PineconeClient();
-await pinecone.init({
-  environment: process.env.ENVIRONMENT as string,
-  apiKey: process.env.PINECONE_API_KEY as string,
-});
-
-const indexDescription = await pinecone.describeIndex({
-  indexName: "mango",
-});
-
-console.log(indexDescription)
-
 
 export async function POST(req: Request) {
   const json = await req.json()
@@ -60,6 +47,17 @@ export async function POST(req: Request) {
     temperature: 0.8
   })
 
+  await pinecone.init({
+    environment: process.env.ENVIRONMENT as string,
+    apiKey: process.env.PINECONE_API_KEY as string,
+  });
+  
+  const indexDescription = await pinecone.describeIndex({
+    indexName: "mango",
+  });
+
+  console.log(indexDescription)
+
   const outputParser = new BytesOutputParser()
 
   if (!userId) {
@@ -71,13 +69,6 @@ export async function POST(req: Request) {
   if (previewToken) {
     configuration.apiKey = previewToken
   }
-
-  const res = await openai.createChatCompletion({
-    model: 'gpt-3.5-turbo',
-    messages,
-    temperature: 0.7,
-    stream: true
-  })
 
   const chain = prompt.pipe(model).pipe(outputParser)
  
