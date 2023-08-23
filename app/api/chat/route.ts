@@ -45,17 +45,14 @@ export async function POST(req: Request) {
     temperature: 0.8
   })
 
-  const pinecone = new PineconeClient();
-
-  await pinecone.init({
-    environment: process.env.ENVIRONMENT as string,
-    apiKey: process.env.PINECONE_API_KEY as string,
-  });
-
-  console.log(process.env.PINECONE_API_KEY as string)
+  const pinecone = new PineconeClient();      
+  await pinecone.init({      
+	  environment: process.env.PINECONE_ENVIRONMENT as string,      
+	  apiKey: process.env.PINECONE_API_KEY as string,      
+  });      
   
   const index = pinecone.Index("mango");
-  const indexStats = index.describeIndexStats({
+  const indexStats = await index.describeIndexStats({
     describeIndexStatsRequest: {
       filter: {},
     },
