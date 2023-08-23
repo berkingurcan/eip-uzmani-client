@@ -85,8 +85,6 @@ export async function POST(req: Request) {
     },
   });
 
-  console.log(queryResponse)
-
   if (queryResponse.matches.length) {
     const llm = new OpenAI({});
     const chain = loadQAStuffChain(llm);
@@ -99,8 +97,6 @@ export async function POST(req: Request) {
       input_documents: [new Document({ pageContent: concatenatedPageContent })],
       question: currentMessageContent,
     });
-
-    console.log(result.text)
 
     return new StreamingTextResponse(result.text)
   } else {
