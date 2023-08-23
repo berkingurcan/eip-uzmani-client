@@ -7,6 +7,8 @@ import { ChatOpenAI } from 'langchain/chat_models/openai'
 import { BytesOutputParser } from 'langchain/schema/output_parser'
 import { PromptTemplate } from 'langchain/prompts'
 
+import { PineconeClient } from "@pinecone-database/pinecone";
+
 import { auth } from '@/auth'
 import { nanoid } from '@/lib/utils'
 
@@ -30,6 +32,14 @@ User: {input}
 AI:`
 
 const openai = new OpenAIApi(configuration)
+
+
+const pinecone = new PineconeClient();
+await pinecone.init({
+  environment: process.env.ENVIRONMENT as string,
+  apiKey: process.env.PINECONE_API_KEY as string,
+});
+
 
 export async function POST(req: Request) {
   const json = await req.json()
