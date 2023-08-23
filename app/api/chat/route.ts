@@ -40,6 +40,12 @@ await pinecone.init({
   apiKey: process.env.PINECONE_API_KEY as string,
 });
 
+const indexDescription = await pinecone.describeIndex({
+  indexName: "mango",
+});
+
+console.log(indexDescription)
+
 
 export async function POST(req: Request) {
   const json = await req.json()
