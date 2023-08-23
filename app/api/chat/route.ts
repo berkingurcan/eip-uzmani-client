@@ -31,8 +31,6 @@ Current conversation:
 User: {input}
 AI:`
 
-const openai = new OpenAIApi(configuration)
-const pinecone = new PineconeClient();
 
 export async function POST(req: Request) {
   const json = await req.json()
@@ -47,16 +45,23 @@ export async function POST(req: Request) {
     temperature: 0.8
   })
 
+  const pinecone = new PineconeClient();
+
   await pinecone.init({
     environment: process.env.ENVIRONMENT as string,
     apiKey: process.env.PINECONE_API_KEY as string,
   });
+
+  console.log(process.env.PINECONE_API_KEY as string)
   
-  const indexDescription = await pinecone.describeIndex({
-    indexName: "mango",
+  const index = pinecone.Index("mango");
+  const indexStats = index.describeIndexStats({
+    describeIndexStatsRequest: {
+      filter: {},
+    },
   });
 
-  console.log(indexDescription)
+  console.log(indexStats)
 
   const outputParser = new BytesOutputParser()
 
