@@ -1,16 +1,20 @@
 import { kv } from '@vercel/kv'
 import { NextRequest } from 'next/server'
-import { OpenAIStream, StreamingTextResponse, VercelChatMessage } from 'ai'
+import { StreamingTextResponse, VercelChatMessage, LangChainStream } from 'ai'
 import { Configuration, OpenAIApi } from 'openai-edge'
 
 import { ChatOpenAI } from 'langchain/chat_models/openai'
 import { BytesOutputParser } from 'langchain/schema/output_parser'
 import { PromptTemplate } from 'langchain/prompts'
+import { OpenAIEmbeddings } from 'langchain/embeddings/openai'
+import { loadQAStuffChain } from 'langchain/chains'
+import { Document } from 'langchain/document'
 
 import { PineconeClient } from "@pinecone-database/pinecone";
 
 import { auth } from '@/auth'
 import { nanoid } from '@/lib/utils'
+import { OpenAI } from 'langchain'
 
 export const runtime = 'edge'
 
@@ -58,8 +62,6 @@ export async function POST(req: Request) {
     },
   });
 
-  console.log(indexStats)
-
   const outputParser = new BytesOutputParser()
 
   if (!userId) {
@@ -72,14 +74,43 @@ export async function POST(req: Request) {
     configuration.apiKey = previewToken
   }
 
-  const chain = prompt.pipe(model).pipe(outputParser)
- 
-  const stream = await chain.stream({
-    chat_history: formattedPreviousMessages.join('\n'),
-    input: currentMessageContent
-  })
+  const queryEmbedding = await new OpenAIEmbeddings().embedQuery(currentMessageContent)
 
-  const title = json.messages[0].content.substring(0, 100)
+  let queryResponse = await index.query({
+    queryRequest: {
+      topK: 5,
+      vector: queryEmbedding,
+      includeMetadata: true,
+      includeValues: true,
+    },
+  });
+
+  console.log(queryResponse)
+
+  if (queryResponse.matches.length) {
+    const llm = new OpenAI({});
+    const chain = loadQAStuffChain(llm);
+
+    const concatenatedPageContent = queryResponse.matches
+      .map((match) => match.metadata.text)
+      .join(" ");
+    
+    const result = await chain.call({
+      input_documents: [new Document({ pageContent: concatenatedPageContent })],
+      question: currentMessageContent,
+    });
+
+    console.log(result.text)
+
+    return new StreamingTextResponse(result.text)
+  } else {
+    const chain = prompt.pipe(model).pipe(outputParser)
+    const stream = await chain.stream({
+      chat_history: formattedPreviousMessages.join('\n'),
+      input: currentMessageContent
+    })
+
+    const title = json.messages[0].content.substring(0, 100)
       const id = json.id ?? nanoid()
       const createdAt = Date.now()
       const path = `/chat/${id}`
@@ -102,6 +133,8 @@ export async function POST(req: Request) {
         score: createdAt,
         member: `chat:${id}`
       })
- 
-  return new StreamingTextResponse(stream)
+
+    return new StreamingTextResponse(stream)
+  }
+
 }
