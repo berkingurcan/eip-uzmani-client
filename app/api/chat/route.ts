@@ -7,8 +7,9 @@ import { ChatOpenAI } from 'langchain/chat_models/openai'
 import { BytesOutputParser } from 'langchain/schema/output_parser'
 import { PromptTemplate } from 'langchain/prompts'
 import { OpenAIEmbeddings } from 'langchain/embeddings/openai'
-import { loadQAStuffChain } from 'langchain/chains'
+import { ConversationalRetrievalQAChain } from 'langchain/chains'
 import { Document } from 'langchain/document'
+import { PineconeStore } from 'langchain/vectorstores'
 
 import { PineconeClient } from "@pinecone-database/pinecone";
 
@@ -85,18 +86,24 @@ export async function POST(req: Request) {
     },
   });
 
+  // TODO!: https://js.langchain.com/docs/api/vectorstores_pinecone/interfaces/PineconeLibArgs and https://js.langchain.com/docs/api/vectorstores_pinecone/classes/PineconeStore
+  const vectorStore = new PineconeStore(
+    queryEmbedding,
+    index
+  )
+
+  //  Buffer memory
   if (queryResponse.matches.length) {
     const llm = new OpenAI({});
-    const chain = loadQAStuffChain(llm);
-
-    const concatenatedPageContent = queryResponse.matches
-      .map((match) => match.metadata.text)
-      .join(" ");
-    
-    const result = await chain.call({
-      input_documents: [new Document({ pageContent: concatenatedPageContent })],
-      question: currentMessageContent,
-    });
+    const chain = ConversationalRetrievalQAChain.fromLLM(
+      model,
+      vectorStore.asRetriever(),
+      {
+        memory: new BufferMemory({
+          memoryKey: "chat_history", // Must be set to "chat_history"
+        }),
+      }
+    );
 
     return new StreamingTextResponse(result.text)
   } else {
