@@ -9,7 +9,9 @@ import { PromptTemplate } from 'langchain/prompts'
 import { OpenAIEmbeddings } from 'langchain/embeddings/openai'
 import { ConversationalRetrievalQAChain } from 'langchain/chains'
 import { Document } from 'langchain/document'
-import { PineconeStore } from 'langchain/vectorstores'
+import { PineconeStore } from 'langchain/vectorstores/pinecone'
+import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
+import { BufferMemory } from "langchain/memory";
 
 import { PineconeClient } from "@pinecone-database/pinecone";
 
@@ -86,13 +88,11 @@ export async function POST(req: Request) {
     },
   });
 
-  // TODO!: https://js.langchain.com/docs/api/vectorstores_pinecone/interfaces/PineconeLibArgs and https://js.langchain.com/docs/api/vectorstores_pinecone/classes/PineconeStore
-  const vectorStore = new PineconeStore(
+  const vectorStore = await PineconeStore.fromExistingIndex(
     queryEmbedding,
-    index
+    {index}
   )
 
-  //  Buffer memory
   if (queryResponse.matches.length) {
     const llm = new OpenAI({});
     const chain = ConversationalRetrievalQAChain.fromLLM(
@@ -105,7 +105,10 @@ export async function POST(req: Request) {
       }
     );
 
-    return new StreamingTextResponse(result.text)
+    const res = await chain.call({ currentMessageContent });
+    console.log(res)
+
+    return new StreamingTextResponse(res.text)
   } else {
     const chain = prompt.pipe(model).pipe(outputParser)
     const stream = await chain.stream({
