@@ -105,10 +105,13 @@ export async function POST(req: Request) {
       }
     );
 
-    const res = await chain.call({ currentMessageContent });
+    const res = await chain.stream({ 
+      chat_history: formattedPreviousMessages.join('\n'),
+      input: currentMessageContent 
+    });
     console.log(res)
 
-    return new StreamingTextResponse(res.text)
+    return new StreamingTextResponse(res)
   } else {
     const chain = prompt.pipe(model).pipe(outputParser)
     const stream = await chain.stream({
