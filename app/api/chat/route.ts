@@ -98,16 +98,11 @@ export async function POST(req: Request) {
     const chain = ConversationalRetrievalQAChain.fromLLM(
       model,
       vectorStore.asRetriever(),
-      {
-        memory: new BufferMemory({
-          memoryKey: "chat_history", // Must be set to "chat_history"
-        }),
-      }
     );
 
     const res = await chain.stream({ 
+      currentMessageContent,
       chat_history: formattedPreviousMessages.join('\n'),
-      input: currentMessageContent 
     });
     console.log(res)
 
