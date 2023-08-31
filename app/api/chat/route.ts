@@ -79,7 +79,7 @@ export async function POST(req: Request) {
 
   const queryEmbedding = await new OpenAIEmbeddings({
     openAIApiKey: process.env.OPENAI_API_KEY
-  }).embedQuery(currentMessageContent)
+  })
 
   const vectorStore = await PineconeStore.fromExistingIndex(
     queryEmbedding,
