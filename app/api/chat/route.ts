@@ -77,7 +77,16 @@ export async function POST(req: Request) {
     configuration.apiKey = previewToken
   }
 
-  const queryEmbedding = await new OpenAIEmbeddings().embedQuery(currentMessageContent)
+  const queryEmbedding = await new OpenAIEmbeddings({
+    openAIApiKey: process.env.OPENAI_API_KEY
+  }).embedQuery(currentMessageContent)
+
+  const vectorStore = await PineconeStore.fromExistingIndex(
+    queryEmbedding,
+    {index}
+  )
+
+  console.log(vectorStore)
 
   let queryResponse = await index.query({
     queryRequest: {
@@ -88,20 +97,14 @@ export async function POST(req: Request) {
     },
   });
 
-  const vectorStore = await PineconeStore.fromExistingIndex(
-    queryEmbedding,
-    {index}
-  )
-
   if (queryResponse.matches.length) {
-    const llm = new OpenAI({});
     const chain = ConversationalRetrievalQAChain.fromLLM(
       model,
       vectorStore.asRetriever(),
     );
 
     const res = await chain.stream({ 
-      currentMessageContent,
+      question: currentMessageContent,
       chat_history: formattedPreviousMessages.join('\n'),
     });
     console.log(res)
