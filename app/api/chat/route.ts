@@ -14,7 +14,6 @@ import { PineconeClient } from "@pinecone-database/pinecone";
 
 import { auth } from '@/auth'
 import { nanoid } from '@/lib/utils'
-import { OpenAI } from 'langchain'
 
 export const runtime = 'edge'
 
