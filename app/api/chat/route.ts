@@ -8,10 +8,7 @@ import { BytesOutputParser } from 'langchain/schema/output_parser'
 import { PromptTemplate } from 'langchain/prompts'
 import { OpenAIEmbeddings } from 'langchain/embeddings/openai'
 import { ConversationalRetrievalQAChain } from 'langchain/chains'
-import { Document } from 'langchain/document'
 import { PineconeStore } from 'langchain/vectorstores/pinecone'
-import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
-import { BufferMemory } from "langchain/memory";
 
 import { PineconeClient } from "@pinecone-database/pinecone";
 
@@ -77,7 +74,7 @@ export async function POST(req: Request) {
     configuration.apiKey = previewToken
   }
 
-  const queryEmbedding = await new OpenAIEmbeddings({
+  const queryEmbedding = new OpenAIEmbeddings({
     openAIApiKey: process.env.OPENAI_API_KEY
   })
 
@@ -86,12 +83,10 @@ export async function POST(req: Request) {
     {index}
   )
 
-  console.log(vectorStore)
-
   let queryResponse = await index.query({
     queryRequest: {
       topK: 5,
-      vector: queryEmbedding,
+      vector: await queryEmbedding.embedQuery(currentMessageContent),
       includeMetadata: true,
       includeValues: true,
     },
