@@ -87,7 +87,7 @@ export async function POST(req: Request) {
   let queryResponse = await index.query({
     queryRequest: {
       topK: 5,
-      vector: await queryEmbedding,
+      vector: queryEmbedding,
       includeMetadata: true,
       includeValues: true,
     },
